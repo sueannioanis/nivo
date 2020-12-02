@@ -83,6 +83,7 @@ const commonPropTypes = {
 export const BumpPropTypes = {
     ...commonPropTypes,
     ...motionPropTypes,
+    role: PropTypes.string.isRequired,
 }
 
 const commonDefaultProps = {
@@ -131,6 +132,6 @@ export const BumpDefaultProps = {
     ...commonDefaultProps,
     pointComponent: Point,
     animate: true,
-    motionStiffness: 90,
-    motionDamping: 15,
+    motionConfig: 'gentle',
+    role: 'img',
 }

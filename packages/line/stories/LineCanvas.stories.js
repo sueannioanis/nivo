@@ -6,9 +6,9 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-import React from 'react'
+import React, { useRef } from 'react'
 import { storiesOf } from '@storybook/react'
-import { withKnobs, boolean } from '@storybook/addon-knobs'
+import { withKnobs, boolean, button } from '@storybook/addon-knobs'
 import { generateDrinkStats } from '@nivo/generators'
 import { LineCanvas } from '../src'
 
@@ -181,3 +181,45 @@ stories.add('time scale', () => (
         enableSlices={false}
     />
 ))
+
+stories.add('custom line style', () => (
+    <LineCanvas
+        {...commonProperties}
+        layers={[
+            'grid',
+            'markers',
+            'areas',
+            ({ lineGenerator, series, ctx, lineWidth, innerWidth }) => {
+                lineGenerator.context(ctx)
+                series.forEach(serie => {
+                    const gradient = ctx.createLinearGradient(0, 0, innerWidth, 0)
+                    gradient.addColorStop('0', 'white')
+                    gradient.addColorStop('0.5', serie.color)
+                    gradient.addColorStop('1.0', 'black')
+                    ctx.strokeStyle = gradient
+                    ctx.lineWidth = lineWidth
+                    ctx.beginPath()
+                    lineGenerator(serie.data.map(d => d.position))
+                    ctx.stroke()
+                })
+            },
+            'points',
+            'mesh',
+            'legends',
+        ]}
+    />
+))
+
+stories.add('Get canvas - download the chart', () => {
+    const ref = useRef(undefined)
+
+    button('Download image', () => {
+        const canvas = ref.current
+        const link = document.createElement('a')
+        link.download = 'chart.png'
+        link.href = canvas.toDataURL('image/png')
+        link.click()
+    })
+
+    return <LineCanvas {...commonProperties} ref={ref} />
+})

@@ -7,7 +7,7 @@
  * file that was distributed with this source code.
  */
 import React, { Fragment } from 'react'
-import { Container, SvgWrapper } from '@nivo/core'
+import { LegacyContainer, SvgWrapper } from '@nivo/core'
 import enhance from './enhance'
 import { VoronoiPropTypes } from './props'
 
@@ -91,18 +91,25 @@ const Voronoi = ({
     }
 
     return (
-        <Container isInteractive={false} theme={theme} animate={false}>
-            {(/*{ showTooltip, hideTooltip }*/) => (
-                <SvgWrapper width={outerWidth} height={outerHeight} margin={margin} theme={theme}>
-                    {layers.map((layer, i) => {
-                        if (typeof layer === 'function') {
-                            return <Fragment key={i}>{layer(context)}</Fragment>
-                        }
-                        return layerById[layer]
-                    })}
-                </SvgWrapper>
-            )}
-        </Container>
+        <LegacyContainer isInteractive={false} theme={theme} animate={false}>
+            {
+                (/*{ showTooltip, hideTooltip }*/) => (
+                    <SvgWrapper
+                        width={outerWidth}
+                        height={outerHeight}
+                        margin={margin}
+                        theme={theme}
+                    >
+                        {layers.map((layer, i) => {
+                            if (typeof layer === 'function') {
+                                return <Fragment key={i}>{layer(context)}</Fragment>
+                            }
+                            return layerById[layer]
+                        })}
+                    </SvgWrapper>
+                )
+            }
+        </LegacyContainer>
     )
 }
 

@@ -8,7 +8,7 @@
  */
 import * as React from 'react'
 import { Dimensions, Box, Theme, MotionProps } from '@nivo/core'
-import { InheritedColorProp } from '@nivo/colors'
+import { InheritedColorConfig } from '@nivo/colors'
 
 type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 
@@ -67,17 +67,19 @@ declare module '@nivo/network' {
 
         nodeColor: string | NodeAccessor<ComputedNode, string>
         nodeBorderWidth?: number
-        nodeBorderColor?: InheritedColorProp<ComputedNode>
+        nodeBorderColor?: InheritedColorConfig<ComputedNode>
 
         linkThickness?: number | LinkAccessor<ComputedLink, number>
-        linkColor?: InheritedColorProp<ComputedLink>
+        linkColor?: InheritedColorConfig<ComputedLink>
 
         theme?: Theme
 
         isInteractive?: boolean
     }
 
-    export interface NetworkSvgProps extends NetworkProps, MotionProps {}
+    export interface NetworkSvgProps extends NetworkProps, MotionProps {
+        role?: string
+    }
 
     export class Network extends React.Component<NetworkSvgProps & Dimensions> {}
     export class ResponsiveNetwork extends React.Component<NetworkSvgProps> {}

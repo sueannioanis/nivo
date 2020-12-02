@@ -20,6 +20,7 @@ import { BoxLegendSvg } from '@nivo/legends'
 import { useScatterPlot } from './hooks'
 import { ScatterPlotPropTypes, ScatterPlotDefaultProps } from './props'
 import AnimatedNodes from './AnimatedNodes'
+import ScatterPlotAnnotations from './ScatterPlotAnnotations'
 import StaticNodes from './StaticNodes'
 import Mesh from './Mesh'
 
@@ -52,6 +53,8 @@ const ScatterPlot = props => {
         axisBottom,
         axisLeft,
 
+        annotations,
+
         isInteractive,
         useMesh,
         debugMesh,
@@ -64,6 +67,7 @@ const ScatterPlot = props => {
         markers,
 
         legends,
+        role,
     } = props
 
     const { margin, innerWidth, innerHeight, outerWidth, outerHeight } = useDimensions(
@@ -152,6 +156,16 @@ const ScatterPlot = props => {
             />
         ),
         mesh: null,
+        annotations: (
+            <ScatterPlotAnnotations
+                key="annotations"
+                nodes={nodes}
+                annotations={annotations}
+                innerWidth={innerWidth}
+                innerHeight={innerHeight}
+                animate={animate}
+            />
+        ),
         legends: legends.map((legend, i) => (
             <BoxLegendSvg
                 key={i}
@@ -182,7 +196,13 @@ const ScatterPlot = props => {
     }
 
     return (
-        <SvgWrapper width={outerWidth} height={outerHeight} margin={margin} theme={theme}>
+        <SvgWrapper
+            width={outerWidth}
+            height={outerHeight}
+            margin={margin}
+            theme={theme}
+            role={role}
+        >
             {layers.map((layer, i) => {
                 if (layerById[layer] !== undefined) {
                     return layerById[layer]

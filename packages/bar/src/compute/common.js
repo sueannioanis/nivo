@@ -15,10 +15,22 @@ import { scaleBand } from 'd3-scale'
  * @param {Function}       getIndex
  * @param {Array.<number>} range
  * @param {number}         padding
+ * @Param {scalePropType}  indexScale
  * @returns {Function}
  */
-export const getIndexedScale = (data, getIndex, range, padding) =>
-    scaleBand()
-        .rangeRound(range)
+export const getIndexScale = (data, getIndex, range, padding, indexScale) => {
+    return scaleBand()
         .domain(data.map(getIndex))
+        .range(range)
+        .round(Boolean(indexScale.round))
         .padding(padding)
+}
+
+export const normalizeData = (data, keys) =>
+    data.map(item => ({
+        ...keys.reduce((acc, key) => ({ ...acc, [key]: null }), {}),
+        ...item,
+    }))
+
+export const filterNullValues = data =>
+    Object.keys(data).reduce((acc, key) => (data[key] ? { ...acc, [key]: data[key] } : acc), {})

@@ -8,6 +8,7 @@
  */
 import { BarDefaultProps as defaults } from '@nivo/bar'
 import {
+    themeProperty,
     axesProperties,
     motionProperties,
     defsProperties,
@@ -29,7 +30,7 @@ const props = [
         description: `
             Key to use to index the data,
             this key must exist in each data item.
-            
+
             You can also provide a function which will
             receive the data item and must return the desired index.
         `,
@@ -73,6 +74,62 @@ const props = [
             choices: [
                 { label: 'horizontal', value: 'horizontal' },
                 { label: 'vertical', value: 'vertical' },
+            ],
+        },
+    },
+    {
+        key: 'valueScale',
+        type: 'object',
+        group: 'Base',
+        help: `value scale configuration.`,
+        defaultValue: defaults.valueScale,
+        controlType: 'object',
+        controlOptions: {
+            props: [
+                {
+                    key: 'type',
+                    help: `Scale type.`,
+                    type: 'string',
+                    controlType: 'choices',
+                    controlOptions: {
+                        disabled: true,
+                        choices: ['linear', 'symlog'].map(v => ({
+                            label: v,
+                            value: v,
+                        })),
+                    },
+                },
+            ],
+        },
+    },
+    {
+        key: 'indexScale',
+        type: 'object',
+        group: 'Base',
+        help: `index scale configuration.`,
+        defaultValue: defaults.indexScale,
+        controlType: 'object',
+        controlOptions: {
+            props: [
+                {
+                    key: 'type',
+                    help: `Scale type.`,
+                    type: 'string',
+                    controlType: 'choices',
+                    controlOptions: {
+                        disabled: true,
+                        choices: ['band'].map(v => ({
+                            label: v,
+                            value: v,
+                        })),
+                    },
+                },
+                {
+                    key: 'round',
+                    help: 'Toggle index scale (for bar width) rounding.',
+                    type: 'boolean',
+                    controlType: 'switch',
+                },
             ],
         },
     },
@@ -214,6 +271,7 @@ const props = [
         controlType: 'margin',
         group: 'Base',
     },
+    themeProperty,
     {
         key: 'colors',
         help: 'Defines color range.',
@@ -322,12 +380,12 @@ const props = [
         help: 'Define how bar labels are computed.',
         description: `
             Define how bar labels are computed.
-            
+
             By default it will use the bar's value.
             It accepts a string which will be used to access
             a specific bar data property, such as
             \`'value'\` or \`'id'\`.
-            
+
             You can also use a funtion if you want to
             add more logic, this function will receive
             the current bar's data and must return

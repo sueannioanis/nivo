@@ -9,12 +9,12 @@
 import React, { Component } from 'react'
 import uniqBy from 'lodash/uniqBy'
 import setDisplayName from 'recompose/setDisplayName'
-import { getRelativeCursor, isCursorInRect, Container } from '@nivo/core'
+import { getRelativeCursor, isCursorInRect, LegacyContainer } from '@nivo/core'
 import { renderAxesToCanvas, renderGridLinesToCanvas } from '@nivo/axes'
 import { renderLegendToCanvas } from '@nivo/legends'
 import { BasicTooltip } from '@nivo/tooltip'
 import { generateGroupedBars, generateStackedBars } from './compute'
-import { BarPropTypes } from './props'
+import { BarDefaultProps, BarPropTypes } from './props'
 import enhance from './enhance'
 
 const findNodeUnderCursor = (nodes, margin, x, y) =>
@@ -54,6 +54,9 @@ class BarCanvas extends Component {
             getIndex,
             minValue,
             maxValue,
+
+            valueScale,
+            indexScale,
 
             width,
             height,
@@ -104,6 +107,8 @@ class BarCanvas extends Component {
             getColor,
             padding,
             innerPadding,
+            valueScale,
+            indexScale,
         }
 
         const result =
@@ -257,14 +262,15 @@ class BarCanvas extends Component {
     }
 
     render() {
-        const { outerWidth, outerHeight, pixelRatio, isInteractive, theme } = this.props
+        const { outerWidth, outerHeight, pixelRatio, isInteractive, theme, canvasRef } = this.props
 
         return (
-            <Container isInteractive={isInteractive} theme={theme} animate={false}>
+            <LegacyContainer isInteractive={isInteractive} theme={theme} animate={false}>
                 {({ showTooltip, hideTooltip }) => (
                     <canvas
                         ref={surface => {
                             this.surface = surface
+                            if (canvasRef) canvasRef.current = surface
                         }}
                         width={outerWidth * pixelRatio}
                         height={outerHeight * pixelRatio}
@@ -278,11 +284,13 @@ class BarCanvas extends Component {
                         onClick={this.handleClick}
                     />
                 )}
-            </Container>
+            </LegacyContainer>
         )
     }
 }
 
 BarCanvas.propTypes = BarPropTypes
+BarCanvas.defaultProps = BarDefaultProps
 
-export default setDisplayName('BarCanvas')(enhance(BarCanvas))
+const EnhancedBarCanvas = setDisplayName('BarCanvas')(enhance(BarCanvas))
+export default React.forwardRef((props, ref) => <EnhancedBarCanvas {...props} canvasRef={ref} />)

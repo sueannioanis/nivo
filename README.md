@@ -3,7 +3,7 @@
 [![Backers on Open Collective](https://opencollective.com/nivo/backers/badge.svg?style=flat-square)](#backers)
 [![Sponsors on Open Collective](https://opencollective.com/nivo/sponsors/badge.svg?style=flat-square)](#sponsors)
 [![License][license-image]][license-url]
-[![Travis CI][travis-image]][travis-url]
+[![GitHub Actions][actions-image]][actions-url]
 [![NPM version][npm-image]][npm-url]
 [![nivo channel on discord](https://img.shields.io/badge/discord-nivo-61dafb.svg?style=flat-square)](https://discord.gg/n7Ft74f)
 
@@ -15,10 +15,11 @@ but just a few provide server side rendering ability and fully declarative chart
 
 ## Installation
 
-In order to use nivo, you just have to pick the scoped `@nivo` packages according to the charts you wish to use.
+In order to use nivo, you have to install the `@nivo/core` package and then choose
+some of the scoped `@nivo` packages according to the charts you wish to use:
 
 ```
-yarn add @nivo/bar @nivo/sankey ...
+yarn add @nivo/core @nivo/bar
 ```
 
 ## Features
@@ -78,24 +79,17 @@ Donations are welcome to help improving **nivo** [[Become a backer](https://open
 Support this project by becoming a sponsor,
 your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/nivo#sponsor)]
 
-## Repositories
-
--   [nivo](https://github.com/plouc/nivo) - nivo packages, website, storybook and examples
--   [nivo-api](https://github.com/plouc/nivo-api) - the nivo http api
--   [nivo-api-docker](https://github.com/plouc/nivo-api-docker) - a Docker image for the nivo http api
-
 ## Credits
 
 -   [d3](https://d3js.org/)
 -   [react](https://facebook.github.io/react/)
--   [react-motion](https://github.com/chenglou/react-motion)
 -   …
 
 [license-image]: https://img.shields.io/github/license/plouc/nivo.svg?style=flat-square
 [license-url]: https://github.com/plouc/nivo/blob/master/LICENSE.md
 [npm-image]: https://img.shields.io/npm/v/@nivo/core.svg?style=flat-square
 [npm-url]: https://www.npmjs.com/~nivo
-[travis-image]: https://img.shields.io/travis/plouc/nivo.svg?style=flat-square
-[travis-url]: https://travis-ci.org/plouc/nivo
+[actions-image]: https://img.shields.io/github/workflow/status/plouc/nivo/CI.svg?style=flat-square
+[actions-url]: https://github.com/plouc/nivo/actions
 [prettier-image]: https://img.shields.io/badge/styled_with-prettier-ff69b4.svg?style=flat-square
 [prettier-url]: https://github.com/prettier/prettier

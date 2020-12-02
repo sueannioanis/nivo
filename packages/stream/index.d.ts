@@ -17,7 +17,7 @@ import {
     AreaCurve,
     SvgDefsAndFill,
 } from '@nivo/core'
-import { OrdinalColorsInstruction, InheritedColorProp } from '@nivo/colors'
+import { OrdinalColorScaleConfig, InheritedColorConfig } from '@nivo/colors'
 import { LegendProps } from '@nivo/legends'
 import { Scale } from '@nivo/scales'
 import { AxisProps } from '@nivo/axes'
@@ -28,13 +28,11 @@ declare module '@nivo/stream' {
 
     export type StackFunc<T> = (
         data: T[]
-    ) => Array<
-        Array<{
-            0: number
-            1: number
-            data: T
-        }>
-    >
+    ) => {
+        0: number
+        1: number
+        data: T
+    }[][]
 
     export interface Datum {
         color: string
@@ -66,19 +64,19 @@ declare module '@nivo/stream' {
         enableGridX: boolean
         enableGridY: boolean
 
-        colors: OrdinalColorsInstruction
+        colors: OrdinalColorScaleConfig
         fillOpacity: number
 
         borderWidth: number
-        borderColor: InheritedColorProp
+        borderColor: InheritedColorConfig
 
         enableDots: boolean
         renderDot: StreamDotsItem
         dotPosition: 'start' | 'center' | 'end'
         dotSize: DatumToNumber | number
-        dotColor: InheritedColorProp
+        dotColor: InheritedColorConfig
         dotBorderWidth: DatumToNumber | number
-        dotBorderColor: InheritedColorProp
+        dotBorderColor: InheritedColorConfig
 
         isInteractive: boolean
         tooltipLabel: TooltipLabel<T>
@@ -86,6 +84,7 @@ declare module '@nivo/stream' {
         enableStackTooltip: boolean
 
         theme: Theme
+        role: string
 
         legends: LegendProps[]
     }

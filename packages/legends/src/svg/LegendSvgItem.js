@@ -68,22 +68,25 @@ const LegendSvgItem = ({
         },
         [onMouseEnter, data, effects]
     )
-    const handleMouseLeave = useCallback(() => {
-        if (effects.length > 0) {
-            const applyEffects = effects.filter(({ on }) => on !== 'hover')
-            const style = applyEffects.reduce(
-                (acc, effect) => ({
-                    ...acc,
-                    ...effect.style,
-                }),
-                {}
-            )
-            setStyle(style)
-        }
+    const handleMouseLeave = useCallback(
+        event => {
+            if (effects.length > 0) {
+                const applyEffects = effects.filter(({ on }) => on !== 'hover')
+                const style = applyEffects.reduce(
+                    (acc, effect) => ({
+                        ...acc,
+                        ...effect.style,
+                    }),
+                    {}
+                )
+                setStyle(style)
+            }
 
-        if (onMouseLeave === undefined) return
-        onMouseLeave(data, event)
-    }, [onMouseLeave, data, effects])
+            if (onMouseLeave === undefined) return
+            onMouseLeave(data, event)
+        },
+        [onMouseLeave, data, effects]
+    )
 
     const { symbolX, symbolY, labelX, labelY, labelAnchor, labelAlignment } = computeItemLayout({
         direction,
@@ -139,7 +142,7 @@ const LegendSvgItem = ({
                 textAnchor={labelAnchor}
                 style={{
                     ...theme.legends.text,
-                    fill: style.itemTextColor || textColor,
+                    fill: style.itemTextColor || theme.legends.text.fill || textColor,
                     dominantBaseline: labelAlignment,
                     pointerEvents: 'none',
                     userSelect: 'none',
