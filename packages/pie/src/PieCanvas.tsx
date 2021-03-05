@@ -1,75 +1,28 @@
 import React, { createElement, useEffect, useMemo, useRef } from 'react'
 import {
     // @ts-ignore
-    getHoveredArc,
-    // @ts-ignore
     getRelativeCursor,
-    // @ts-ignore
-    textPropsByEngine,
     useDimensions,
     useTheme,
-    // @ts-ignore
-    withContainer,
-    Theme,
+    Container,
 } from '@nivo/core'
 // @ts-ignore
 import { renderLegendToCanvas } from '@nivo/legends'
 import { useInheritedColor, InheritedColorConfig } from '@nivo/colors'
-// @ts-ignore
 import { useTooltip } from '@nivo/tooltip'
-import { useNormalizedData, usePieFromBox, usePieRadialLabels, usePieSliceLabels } from './hooks'
-import { ComputedDatum, PieCanvasProps, RadialLabelData, SliceLabelData } from './types'
+import {
+    Arc,
+    findArcUnderCursor,
+    useArcLabels,
+    drawCanvasArcLabels,
+    useArcLinkLabels,
+    drawCanvasArcLinkLabels,
+} from '@nivo/arcs'
+import { useNormalizedData, usePieFromBox } from './hooks'
+import { ComputedDatum, PieCanvasProps } from './types'
 import { defaultProps } from './props'
 
-const drawSliceLabels = <RawDatum,>(
-    ctx: CanvasRenderingContext2D,
-    labels: SliceLabelData<RawDatum>[],
-    theme: Theme
-) => {
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.font = `${theme.labels!.text!.fontSize}px ${theme.labels!.text!.fontFamily}`
-
-    labels.forEach(label => {
-        ctx.save()
-        ctx.translate(label.x, label.y)
-        ctx.fillStyle = label.textColor
-        ctx.fillText(`${label.label}`, 0, 0)
-        ctx.restore()
-    })
-}
-
-// prettier-ignore
-const drawRadialLabels = <RawDatum, >(
-    ctx: CanvasRenderingContext2D,
-    labels: RadialLabelData<RawDatum>[],
-    theme: Theme,
-    linkStrokeWidth: number
-) => {
-    ctx.textBaseline = 'middle'
-    ctx.font = `${theme.labels!.text!.fontSize}px ${theme.labels!.text!.fontFamily}`
-
-    labels.forEach(label => {
-        ctx.save()
-        ctx.translate(label.position.x, label.position.y)
-        ctx.fillStyle = label.textColor
-        ctx.textAlign = textPropsByEngine.canvas.align[label.align]
-        ctx.fillText(`${label.text}`, 0, 0)
-        ctx.restore()
-
-        ctx.beginPath()
-        ctx.strokeStyle = label.linkColor
-        ctx.lineWidth = linkStrokeWidth
-        label.line.forEach((point, index) => {
-            if (index === 0) ctx.moveTo(point.x, point.y)
-            else ctx.lineTo(point.x, point.y)
-        })
-        if (linkStrokeWidth > 0) ctx.stroke()
-    })
-}
-
-// prettier-ignore
-const PieCanvas = <RawDatum, >({
+const InnerPieCanvas = <RawDatum,>({
     data,
     id = defaultProps.id,
     value = defaultProps.value,
@@ -82,6 +35,8 @@ const PieCanvas = <RawDatum, >({
     fit = defaultProps.fit,
     innerRadius: innerRadiusRatio = defaultProps.innerRadius,
     cornerRadius = defaultProps.cornerRadius,
+    activeInnerRadiusOffset = defaultProps.activeInnerRadiusOffset,
+    activeOuterRadiusOffset = defaultProps.activeOuterRadiusOffset,
 
     width,
     height,
@@ -94,24 +49,24 @@ const PieCanvas = <RawDatum, >({
     borderWidth = defaultProps.borderWidth,
     borderColor = defaultProps.borderColor as InheritedColorConfig<ComputedDatum<RawDatum>>,
 
-    // radial labels
-    radialLabel = defaultProps.radialLabel,
-    enableRadialLabels = defaultProps.enableRadialLabels,
-    radialLabelsSkipAngle = defaultProps.radialLabelsSkipAngle,
-    radialLabelsLinkOffset = defaultProps.radialLabelsLinkOffset,
-    radialLabelsLinkDiagonalLength = defaultProps.radialLabelsLinkDiagonalLength,
-    radialLabelsLinkHorizontalLength = defaultProps.radialLabelsLinkHorizontalLength,
-    radialLabelsLinkStrokeWidth = defaultProps.radialLabelsLinkStrokeWidth,
-    radialLabelsTextXOffset = defaultProps.radialLabelsTextXOffset,
-    radialLabelsTextColor = defaultProps.radialLabelsTextColor,
-    radialLabelsLinkColor = defaultProps.radialLabelsLinkColor,
+    // arc labels
+    enableArcLabels = defaultProps.enableArcLabels,
+    arcLabel = defaultProps.arcLabel,
+    arcLabelsSkipAngle = defaultProps.arcLabelsSkipAngle,
+    arcLabelsTextColor = defaultProps.arcLabelsTextColor,
+    arcLabelsRadiusOffset = defaultProps.arcLabelsRadiusOffset,
 
-    // slices labels
-    sliceLabel = defaultProps.sliceLabel,
-    enableSliceLabels = defaultProps.enableSliceLabels,
-    sliceLabelsSkipAngle = defaultProps.sliceLabelsSkipAngle,
-    sliceLabelsTextColor = defaultProps.sliceLabelsTextColor,
-    sliceLabelsRadiusOffset = defaultProps.sliceLabelsRadiusOffset,
+    // arc link labels
+    enableArcLinkLabels = defaultProps.enableArcLinkLabels,
+    arcLinkLabel = defaultProps.arcLinkLabel,
+    arcLinkLabelsSkipAngle = defaultProps.arcLinkLabelsSkipAngle,
+    arcLinkLabelsOffset = defaultProps.arcLinkLabelsOffset,
+    arcLinkLabelsDiagonalLength = defaultProps.arcLinkLabelsDiagonalLength,
+    arcLinkLabelsStraightLength = defaultProps.arcLinkLabelsStraightLength,
+    arcLinkLabelsThickness = defaultProps.arcLinkLabelsThickness,
+    arcLinkLabelsTextOffset = defaultProps.arcLinkLabelsTextOffset,
+    arcLinkLabelsTextColor = defaultProps.arcLinkLabelsTextColor,
+    arcLinkLabelsColor = defaultProps.arcLinkLabelsColor,
 
     // interactivity
     isInteractive = defaultProps.isInteractive,
@@ -138,7 +93,15 @@ const PieCanvas = <RawDatum, >({
         colors,
     })
 
-    const { dataWithArc, arcGenerator, centerX, centerY, radius, innerRadius } = usePieFromBox<RawDatum>({
+    const {
+        dataWithArc,
+        arcGenerator,
+        centerX,
+        centerY,
+        radius,
+        innerRadius,
+        setActiveId,
+    } = usePieFromBox<RawDatum>({
         data: normalizedData,
         width: innerWidth,
         height: innerHeight,
@@ -149,33 +112,30 @@ const PieCanvas = <RawDatum, >({
         padAngle,
         sortByValue,
         cornerRadius,
+        activeInnerRadiusOffset,
+        activeOuterRadiusOffset,
     })
 
     const getBorderColor = useInheritedColor<ComputedDatum<RawDatum>>(borderColor, theme)
 
-    const radialLabels = usePieRadialLabels<RawDatum>({
-        enable: enableRadialLabels,
-        dataWithArc,
-        label: radialLabel,
-        textXOffset: radialLabelsTextXOffset,
-        textColor: radialLabelsTextColor,
-        radius,
-        skipAngle: radialLabelsSkipAngle,
-        linkOffset: radialLabelsLinkOffset,
-        linkDiagonalLength: radialLabelsLinkDiagonalLength,
-        linkHorizontalLength: radialLabelsLinkHorizontalLength,
-        linkColor: radialLabelsLinkColor,
+    const arcLabels = useArcLabels<ComputedDatum<RawDatum>>({
+        data: dataWithArc,
+        label: arcLabel,
+        skipAngle: arcLabelsSkipAngle,
+        offset: arcLabelsRadiusOffset,
+        textColor: arcLabelsTextColor,
     })
 
-    const sliceLabels = usePieSliceLabels<RawDatum>({
-        enable: enableSliceLabels,
-        dataWithArc,
-        label: sliceLabel,
-        radius,
-        innerRadius,
-        radiusOffset: sliceLabelsRadiusOffset,
-        skipAngle: sliceLabelsSkipAngle,
-        textColor: sliceLabelsTextColor,
+    const arcLinkLabels = useArcLinkLabels<ComputedDatum<RawDatum>>({
+        data: dataWithArc,
+        skipAngle: arcLinkLabelsSkipAngle,
+        offset: arcLinkLabelsOffset,
+        diagonalLength: arcLinkLabelsDiagonalLength,
+        straightLength: arcLinkLabelsStraightLength,
+        label: arcLinkLabel,
+        linkColor: arcLinkLabelsColor,
+        textOffset: arcLinkLabelsTextOffset,
+        textColor: arcLinkLabelsTextColor,
     })
 
     useEffect(() => {
@@ -192,9 +152,8 @@ const PieCanvas = <RawDatum, >({
         ctx.fillRect(0, 0, outerWidth, outerHeight)
 
         ctx.save()
-        ctx.translate(margin.left, margin.top);
-
-        (arcGenerator as any).context(ctx)
+        ctx.translate(margin.left, margin.top)
+        arcGenerator.context(ctx)
 
         ctx.save()
         ctx.translate(centerX, centerY)
@@ -215,12 +174,17 @@ const PieCanvas = <RawDatum, >({
             }
         })
 
-        if (enableRadialLabels === true) {
-            drawRadialLabels(ctx, radialLabels, theme, radialLabelsLinkStrokeWidth)
+        if (enableArcLinkLabels === true) {
+            drawCanvasArcLinkLabels<ComputedDatum<RawDatum>>(
+                ctx,
+                arcLinkLabels,
+                theme,
+                arcLinkLabelsThickness
+            )
         }
 
-        if (enableSliceLabels === true) {
-            drawSliceLabels(ctx, sliceLabels, theme)
+        if (enableArcLabels === true) {
+            drawCanvasArcLabels<ComputedDatum<RawDatum>>(ctx, arcLabels, theme)
         }
 
         // legends assume a box rather than a center,
@@ -249,10 +213,11 @@ const PieCanvas = <RawDatum, >({
         arcGenerator,
         dataWithArc,
         getBorderColor,
-        enableRadialLabels,
-        radialLabels,
-        enableSliceLabels,
-        sliceLabels,
+        enableArcLabels,
+        arcLabels,
+        enableArcLinkLabels,
+        arcLinkLabels,
+        arcLinkLabelsThickness,
         legends,
         theme,
     ])
@@ -269,7 +234,7 @@ const PieCanvas = <RawDatum, >({
     const getArcFromMouse = (event: React.MouseEvent<HTMLCanvasElement>) => {
         const [x, y] = getRelativeCursor(canvasEl.current, event)
 
-        const hoveredArc = getHoveredArc(
+        const hoveredArc = findArcUnderCursor<Arc & { id: string | number }>(
             margin.left + centerX,
             margin.top + centerY,
             radius,
@@ -290,8 +255,10 @@ const PieCanvas = <RawDatum, >({
         const datum = getArcFromMouse(event)
         if (datum) {
             onMouseMove?.(datum, event)
+            setActiveId(datum.id)
             showTooltipFromEvent(createElement(tooltip, { datum }), event)
         } else {
+            setActiveId(null)
             hideTooltip()
         }
     }
@@ -327,6 +294,12 @@ const PieCanvas = <RawDatum, >({
     )
 }
 
-export default withContainer(PieCanvas) as <RawDatum>(
-    props: PieCanvasProps<RawDatum>
-) => JSX.Element
+export const PieCanvas = <RawDatum,>({
+    isInteractive = defaultProps.isInteractive,
+    theme,
+    ...otherProps
+}: PieCanvasProps<RawDatum>) => (
+    <Container isInteractive={isInteractive} theme={theme}>
+        <InnerPieCanvas<RawDatum> isInteractive={isInteractive} {...otherProps} />
+    </Container>
+)

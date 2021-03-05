@@ -1,17 +1,11 @@
-/*
- * This file is part of the nivo project.
- *
- * Copyright 2016-present, Raphaël Benitte.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-import { defaultProps as defaults } from '@nivo/pie'
+import { defaultProps } from '@nivo/pie'
+import { arcTransitionModes } from '@nivo/arcs'
 import {
     themeProperty,
     defsProperties,
     groupProperties,
     getLegendsProps,
+    motionProperties,
 } from '../../../lib/componentProperties'
 
 const props = [
@@ -25,6 +19,7 @@ const props = [
 
             \`\`\`
             Array<{
+                // must be unique for the whole dataset
                 id:    string | number,
                 value: number
             }>
@@ -44,14 +39,14 @@ const props = [
     {
         key: 'id',
         group: 'Base',
-        help: 'ID accessor.',
+        help: 'ID accessor which should return a unique value for the whole dataset.',
         description: `
             Define how to access the ID of each datum,
             by default, nivo will look for the \`id\` property.
         `,
         type: 'string | (datum: RawDatum): string | number',
         required: false,
-        defaultValue: defaults.id,
+        defaultValue: defaultProps.id,
     },
     {
         key: 'value',
@@ -63,7 +58,7 @@ const props = [
         `,
         type: 'string | (datum: RawDatum): number',
         required: false,
-        defaultValue: defaults.value,
+        defaultValue: defaultProps.value,
     },
     {
         key: 'valueFormat',
@@ -137,7 +132,7 @@ const props = [
         help: 'Start angle (in degrees), useful to make gauges for example.',
         type: 'number',
         required: false,
-        defaultValue: defaults.startAngle,
+        defaultValue: defaultProps.startAngle,
         controlType: 'angle',
         group: 'Base',
         controlOptions: {
@@ -152,7 +147,7 @@ const props = [
         help: 'End angle (in degrees), useful to make gauges for example.',
         type: 'number',
         required: false,
-        defaultValue: defaults.endAngle,
+        defaultValue: defaultProps.endAngle,
         controlType: 'angle',
         group: 'Base',
         controlOptions: {
@@ -164,10 +159,10 @@ const props = [
     },
     {
         key: 'fit',
-        help: `If 'true', pie will be omptimized to occupy more space when using partial pie.`,
+        help: `If 'true', pie will be optimized to occupy more space when using partial pie.`,
         type: 'boolean',
         required: false,
-        defaultValue: defaults.fit,
+        defaultValue: defaultProps.fit,
         controlType: 'switch',
         group: 'Base',
     },
@@ -176,7 +171,7 @@ const props = [
         help: `Donut chart if greater than 0. Value should be between 0~1 as it's a ratio from original radius.`,
         type: 'number',
         required: false,
-        defaultValue: defaults.innerRadius,
+        defaultValue: defaultProps.innerRadius,
         controlType: 'range',
         group: 'Base',
         controlOptions: {
@@ -190,7 +185,7 @@ const props = [
         help: 'Padding between each pie slice.',
         type: 'number',
         required: false,
-        defaultValue: defaults.padAngle,
+        defaultValue: defaultProps.padAngle,
         controlType: 'range',
         group: 'Base',
         controlOptions: {
@@ -205,7 +200,7 @@ const props = [
         help: 'Rounded slices.',
         type: 'number',
         required: false,
-        defaultValue: defaults.cornerRadius,
+        defaultValue: defaultProps.cornerRadius,
         controlType: 'range',
         group: 'Base',
         controlOptions: {
@@ -220,7 +215,7 @@ const props = [
         help: `If 'true', arcs will be ordered according to their associated value.`,
         type: 'boolean',
         required: false,
-        defaultValue: defaults.sortByValue,
+        defaultValue: defaultProps.sortByValue,
         controlType: 'switch',
         group: 'Base',
     },
@@ -238,7 +233,7 @@ const props = [
         help: 'Defines color range.',
         type: 'string | Function | string[]',
         required: false,
-        defaultValue: defaults.colors,
+        defaultValue: defaultProps.colors,
         controlType: 'ordinalColors',
         group: 'Style',
     },
@@ -262,7 +257,7 @@ const props = [
         help: 'Slices border width.',
         type: 'number',
         required: false,
-        defaultValue: defaults.borderWidth,
+        defaultValue: defaultProps.borderWidth,
         controlType: 'lineWidth',
         group: 'Style',
     },
@@ -271,159 +266,28 @@ const props = [
         help: 'Method to compute border color.',
         type: 'string | object | Function',
         required: false,
-        defaultValue: defaults.borderColor,
+        defaultValue: defaultProps.borderColor,
         controlType: 'inheritedColor',
         group: 'Style',
     },
     {
-        key: 'enableRadialLabels',
-        help: 'Enable/disable radial labels.',
+        key: 'enableArcLabels',
+        help: 'Enable/disable arc labels.',
         type: 'boolean',
         required: false,
-        defaultValue: defaults.enableRadialLabels,
+        defaultValue: defaultProps.enableArcLabels,
         controlType: 'switch',
-        group: 'Radial labels',
+        group: 'Arc labels',
     },
     {
-        key: 'radialLabel',
-        help: 'Radial label',
-        description: `
-            Defines how to get label text,
-            can be a string (used to access current node data property)
-            or a function which will receive the actual node data.
-        `,
-        type: 'string | Function',
-        required: false,
-        defaultValue: defaults.radialLabel,
-        controlType: 'choices',
-        group: 'Radial labels',
-        controlOptions: {
-            choices: ['id', 'value', `d => \`\${d.id} (\${d.value})\``].map(choice => ({
-                label: choice,
-                value: choice,
-            })),
-        },
-    },
-    {
-        key: 'radialLabelsSkipAngle',
-        help: `Skip label if corresponding slice's angle is lower than provided value.`,
-        type: 'number',
-        required: false,
-        defaultValue: defaults.radialLabelsSkipAngle,
-        controlType: 'range',
-        group: 'Radial labels',
-        controlOptions: {
-            unit: '°',
-            min: 0,
-            max: 45,
-            step: 1,
-        },
-    },
-    {
-        key: 'radialLabelsLinkOffset',
-        help: `Link offset from pie outer radius, useful to have links overlapping pie slices.`,
-        type: 'number',
-        required: false,
-        defaultValue: defaults.radialLabelsLinkOffset,
-        controlType: 'range',
-        group: 'Radial labels',
-        controlOptions: {
-            unit: 'px',
-            min: -24,
-            max: 24,
-            step: 1,
-        },
-    },
-    {
-        key: 'radialLabelsLinkDiagonalLength',
-        help: `Link diagonal length.`,
-        type: 'number',
-        required: false,
-        defaultValue: defaults.radialLabelsLinkDiagonalLength,
-        controlType: 'range',
-        group: 'Radial labels',
-        controlOptions: {
-            unit: 'px',
-            min: 0,
-            max: 36,
-            step: 1,
-        },
-    },
-    {
-        key: 'radialLabelsLinkHorizontalLength',
-        help: `Links horizontal length.`,
-        type: 'number',
-        required: false,
-        defaultValue: defaults.radialLabelsLinkHorizontalLength,
-        controlType: 'range',
-        group: 'Radial labels',
-        controlOptions: {
-            unit: 'px',
-            min: 0,
-            max: 36,
-            step: 1,
-        },
-    },
-    {
-        key: 'radialLabelsTextXOffset',
-        help: `X offset from links' end.`,
-        type: 'number',
-        required: false,
-        defaultValue: defaults.radialLabelsTextXOffset,
-        controlType: 'range',
-        group: 'Radial labels',
-        controlOptions: {
-            unit: 'px',
-            min: 0,
-            max: 36,
-            step: 1,
-        },
-    },
-    {
-        key: 'radialLabelsLinkStrokeWidth',
-        help: 'Links stroke width.',
-        type: 'number',
-        required: false,
-        defaultValue: defaults.radialLabelsLinkStrokeWidth,
-        controlType: 'lineWidth',
-        group: 'Radial labels',
-    },
-    {
-        key: 'radialLabelsTextColor',
-        help: 'Defines how to compute radial label text color.',
-        type: 'string | object | Function',
-        required: false,
-        defaultValue: defaults.radialLabelsTextColor,
-        controlType: 'inheritedColor',
-        group: 'Radial labels',
-    },
-    {
-        key: 'radialLabelsLinkColor',
-        help: 'Defines how to compute radial label link color.',
-        type: 'string | object | Function',
-        required: false,
-        defaultValue: defaults.radialLabelsLinkColor,
-        controlType: 'inheritedColor',
-        group: 'Radial labels',
-    },
-    {
-        key: 'enableSliceLabels',
-        help: 'Enable/disable slices labels.',
-        type: 'boolean',
-        required: false,
-        defaultValue: defaults.enableSliceLabels,
-        controlType: 'switch',
-        group: 'Slice labels',
-    },
-    {
-        key: 'sliceLabel',
+        key: 'arcLabel',
         help:
             'Defines how to get label text, can be a string (used to access current node data property) or a function which will receive the actual node data.',
         type: 'string | Function',
         required: false,
-        defaultValue: defaults.sliceLabel,
+        defaultValue: defaultProps.arcLabel,
         controlType: 'choices',
-        group: 'Slice labels',
+        group: 'Arc labels',
         controlOptions: {
             choices: ['id', 'value', 'formattedValue', `d => \`\${d.id} (\${d.value})\``].map(
                 choice => ({
@@ -434,16 +298,16 @@ const props = [
         },
     },
     {
-        key: 'sliceLabelsRadiusOffset',
+        key: 'arcLabelsRadiusOffset',
         help: `
             Define the radius to use to determine the label position, starting from inner radius,
             this is expressed as a ratio.
         `,
         type: 'number',
         required: false,
-        defaultValue: defaults.sliceLabelsRadiusOffset,
+        defaultValue: defaultProps.arcLabelsRadiusOffset,
         controlType: 'range',
-        group: 'Slice labels',
+        group: 'Arc labels',
         controlOptions: {
             min: 0,
             max: 2,
@@ -451,13 +315,13 @@ const props = [
         },
     },
     {
-        key: 'sliceLabelsSkipAngle',
-        help: `Skip label if corresponding slice's angle is lower than provided value.`,
+        key: 'arcLabelsSkipAngle',
+        help: `Skip label if corresponding arc's angle is lower than provided value.`,
         type: 'number',
         required: false,
-        defaultValue: defaults.sliceLabelsSkipAngle,
+        defaultValue: defaultProps.arcLabelsSkipAngle,
         controlType: 'range',
-        group: 'Slice labels',
+        group: 'Arc labels',
         controlOptions: {
             unit: '°',
             min: 0,
@@ -466,13 +330,144 @@ const props = [
         },
     },
     {
-        key: 'sliceLabelsTextColor',
-        help: 'Defines how to compute slice label text color.',
+        key: 'arcLabelsTextColor',
+        help: 'Defines how to compute arc label text color.',
         type: 'string | object | Function',
         required: false,
-        defaultValue: defaults.sliceLabelsTextColor,
+        defaultValue: defaultProps.arcLabelsTextColor,
         controlType: 'inheritedColor',
-        group: 'Slice labels',
+        group: 'Arc labels',
+    },
+    {
+        key: 'enableArcLinkLabels',
+        help: 'Enable/disable arc link labels.',
+        type: 'boolean',
+        required: false,
+        defaultValue: defaultProps.enableArcLinkLabels,
+        controlType: 'switch',
+        group: 'Arc link labels',
+    },
+    {
+        key: 'arcLinkLabel',
+        help: 'Arc link label',
+        description: `
+            Defines how to get label text,
+            can be a string (used to access current node data property)
+            or a function which will receive the actual node data.
+        `,
+        type: 'string | Function',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabel,
+        controlType: 'choices',
+        group: 'Arc link labels',
+        controlOptions: {
+            choices: ['id', 'value', `d => \`\${d.id} (\${d.value})\``].map(choice => ({
+                label: choice,
+                value: choice,
+            })),
+        },
+    },
+    {
+        key: 'arcLinkLabelsSkipAngle',
+        help: `Skip label if corresponding slice's angle is lower than provided value.`,
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsSkipAngle,
+        controlType: 'range',
+        group: 'Arc link labels',
+        controlOptions: {
+            unit: '°',
+            min: 0,
+            max: 45,
+            step: 1,
+        },
+    },
+    {
+        key: 'arcLinkLabelsOffset',
+        help: `Link offset from pie outer radius, useful to have links overlapping pie slices.`,
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsOffset,
+        controlType: 'range',
+        group: 'Arc link labels',
+        controlOptions: {
+            unit: 'px',
+            min: -24,
+            max: 24,
+            step: 1,
+        },
+    },
+    {
+        key: 'arcLinkLabelsDiagonalLength',
+        help: `Link diagonal length.`,
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsDiagonalLength,
+        controlType: 'range',
+        group: 'Arc link labels',
+        controlOptions: {
+            unit: 'px',
+            min: 0,
+            max: 36,
+            step: 1,
+        },
+    },
+    {
+        key: 'arcLinkLabelsStraightLength',
+        help: `Length of the straight segment of the links.`,
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsStraightLength,
+        controlType: 'range',
+        group: 'Arc link labels',
+        controlOptions: {
+            unit: 'px',
+            min: 0,
+            max: 36,
+            step: 1,
+        },
+    },
+    {
+        key: 'arcLinkLabelsTextOffset',
+        help: `X offset from links' end.`,
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsTextOffset,
+        controlType: 'range',
+        group: 'Arc link labels',
+        controlOptions: {
+            unit: 'px',
+            min: 0,
+            max: 36,
+            step: 1,
+        },
+    },
+    {
+        key: 'arcLinkLabelsThickness',
+        help: 'Links stroke width.',
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsThickness,
+        controlType: 'lineWidth',
+        group: 'Arc link labels',
+    },
+    {
+        key: 'arcLinkLabelsTextColor',
+        help: 'Defines how to compute arc link label text color.',
+        type: 'string | object | Function',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsTextColor,
+        controlType: 'inheritedColor',
+        group: 'Arc link labels',
+    },
+    {
+        key: 'arcLinkLabelsColor',
+        help: 'Defines how to compute arc link label link color.',
+        type: 'string | object | Function',
+        required: false,
+        defaultValue: defaultProps.arcLinkLabelsColor,
+        controlType: 'inheritedColor',
+        group: 'Arc link labels',
     },
     {
         key: 'layers',
@@ -510,7 +505,7 @@ const props = [
         `,
         required: false,
         type: 'Array<string | Function>',
-        defaultValue: defaults.layers,
+        defaultValue: defaultProps.layers,
     },
     {
         key: 'isInteractive',
@@ -519,8 +514,38 @@ const props = [
         help: 'Enable/disable interactivity.',
         type: 'boolean',
         required: false,
-        defaultValue: defaults.isInteractive,
+        defaultValue: defaultProps.isInteractive,
         controlType: 'switch',
+    },
+    {
+        key: 'activeInnerRadiusOffset',
+        flavors: ['svg', 'canvas'],
+        help: `Skip label if corresponding slice's angle is lower than provided value.`,
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.activeInnerRadiusOffset,
+        controlType: 'range',
+        group: 'Interactivity',
+        controlOptions: {
+            unit: 'px',
+            min: 0,
+            max: 50,
+        },
+    },
+    {
+        key: 'activeOuterRadiusOffset',
+        flavors: ['svg', 'canvas'],
+        help: `Skip label if corresponding slice's angle is lower than provided value.`,
+        type: 'number',
+        required: false,
+        defaultValue: defaultProps.activeOuterRadiusOffset,
+        controlType: 'range',
+        group: 'Interactivity',
+        controlOptions: {
+            unit: 'px',
+            min: 0,
+            max: 50,
+        },
     },
     {
         key: 'onMouseEnter',
@@ -583,6 +608,23 @@ const props = [
         type: 'boolean',
         controlType: 'switch',
         group: 'Interactivity',
+    },
+    ...motionProperties(['svg'], defaultProps, 'react-spring'),
+    {
+        key: 'transitionMode',
+        flavors: ['svg'],
+        help: 'Define how transitions behave.',
+        type: 'string',
+        required: false,
+        defaultValue: defaultProps.transitionMode,
+        controlType: 'choices',
+        group: 'Motion',
+        controlOptions: {
+            choices: arcTransitionModes.map(choice => ({
+                label: choice,
+                value: choice,
+            })),
+        },
     },
     {
         key: 'legends',

@@ -1,6 +1,12 @@
 import * as React from 'react'
-import { Arc as ArcGenerator } from 'd3-shape'
-import { Box, Dimensions, Theme, SvgDefsAndFill } from '@nivo/core'
+import { Box, Dimensions, Theme, SvgDefsAndFill, ModernMotionProps, ValueFormat } from '@nivo/core'
+import {
+    Arc,
+    ArcGenerator,
+    ArcTransitionMode,
+    ArcLabelsProps,
+    ArcLinkLabelsProps,
+} from '@nivo/arcs'
 import { OrdinalColorScaleConfig, InheritedColorConfig } from '@nivo/colors'
 import { LegendProps } from '@nivo/legends'
 
@@ -17,13 +23,13 @@ export interface DefaultRawDatum {
     value: DatumValue
 }
 
-export interface PieArc {
+export interface PieArc extends Arc {
     index: number
-    startAngle: number
-    endAngle: number
-    // center angle
+    // middle angle in radians
     angle: number
     angleDeg: number
+    // outer radius - inner radius in pixels
+    thickness: number
     padAngle: number
 }
 
@@ -58,9 +64,7 @@ export type MouseEventHandler<RawDatum, ElementType = HTMLCanvasElement> = (
     event: React.MouseEvent<ElementType>
 ) => void
 
-export type PieArcGenerator = ArcGenerator<any, PieArc>
-
-export type PieLayerId = 'slices' | 'radialLabels' | 'sliceLabels' | 'legends'
+export type PieLayerId = 'arcLinkLabels' | 'arcs' | 'arcLabels' | 'legends'
 
 export interface PieCustomLayerProps<RawDatum> {
     dataWithArc: ComputedDatum<RawDatum>[]
@@ -68,7 +72,7 @@ export interface PieCustomLayerProps<RawDatum> {
     centerY: number
     radius: number
     innerRadius: number
-    arcGenerator: PieArcGenerator
+    arcGenerator: ArcGenerator
 }
 
 export type PieCustomLayer<RawDatum> = React.FC<PieCustomLayerProps<RawDatum>>
@@ -78,7 +82,7 @@ export type PieLayer<RawDatum> = PieLayerId | PieCustomLayer<RawDatum>
 export type CommonPieProps<RawDatum> = {
     id: string | DatumIdAccessorFunction<RawDatum>
     value: string | DatumValueAccessorFunction<RawDatum>
-    valueFormat?: string | ValueFormatter
+    valueFormat?: ValueFormat<number>
 
     margin: Box
     sortByValue: boolean
@@ -88,6 +92,8 @@ export type CommonPieProps<RawDatum> = {
     startAngle: number
     endAngle: number
     fit: boolean
+    activeInnerRadiusOffset: number
+    activeOuterRadiusOffset: number
 
     // colors, theme and border
     colors: OrdinalColorScaleConfig<Omit<ComputedDatum<RawDatum>, 'color' | 'fill' | 'arc'>>
@@ -95,24 +101,8 @@ export type CommonPieProps<RawDatum> = {
     borderWidth: number
     borderColor: InheritedColorConfig<ComputedDatum<RawDatum>>
 
-    // radial labels
-    enableRadialLabels: boolean
-    radialLabel: string | LabelAccessorFunction<RawDatum>
-    radialLabelsSkipAngle: number
-    radialLabelsTextXOffset: number
-    radialLabelsTextColor: InheritedColorConfig<ComputedDatum<RawDatum>>
-    radialLabelsLinkOffset: number
-    radialLabelsLinkDiagonalLength: number
-    radialLabelsLinkHorizontalLength: number
-    radialLabelsLinkStrokeWidth: number
-    radialLabelsLinkColor: InheritedColorConfig<ComputedDatum<RawDatum>>
-
-    // slices labels
-    enableSliceLabels: boolean
-    sliceLabel: string | LabelAccessorFunction<RawDatum>
-    sliceLabelsRadiusOffset: number
-    sliceLabelsSkipAngle: number
-    sliceLabelsTextColor: InheritedColorConfig<ComputedDatum<RawDatum>>
+    enableArcLabels: boolean
+    enableArcLinkLabels: boolean
 
     // interactivity
     isInteractive: boolean
@@ -121,7 +111,8 @@ export type CommonPieProps<RawDatum> = {
     legends: LegendProps[]
 
     role: string
-}
+} & Partial<ArcLabelsProps<ComputedDatum<RawDatum>>> &
+    Partial<ArcLinkLabelsProps<ComputedDatum<RawDatum>>>
 
 export type PieHandlers<RawDatum, ElementType> = {
     onClick?: MouseEventHandler<RawDatum, ElementType>
@@ -130,13 +121,21 @@ export type PieHandlers<RawDatum, ElementType> = {
     onMouseLeave?: MouseEventHandler<RawDatum, ElementType>
 }
 
+export type PieSvgCustomComponents<RawDatum> = {
+    arcLabelComponent?: ArcLabelsProps<ComputedDatum<RawDatum>>['component']
+    arcLinkLabelComponent?: ArcLinkLabelsProps<ComputedDatum<RawDatum>>['component']
+}
+
 export type PieSvgProps<RawDatum> = DataProps<RawDatum> &
     Dimensions &
     Partial<CommonPieProps<RawDatum>> &
     SvgDefsAndFill<ComputedDatum<RawDatum>> &
     PieHandlers<RawDatum, SVGPathElement> & {
         layers?: PieLayer<RawDatum>[]
-    }
+        animate?: boolean
+        motionConfig?: ModernMotionProps['motionConfig']
+        transitionMode?: ArcTransitionMode
+    } & PieSvgCustomComponents<RawDatum>
 
 export type CompletePieSvgProps<RawDatum> = DataProps<RawDatum> &
     Dimensions &
@@ -144,7 +143,10 @@ export type CompletePieSvgProps<RawDatum> = DataProps<RawDatum> &
     SvgDefsAndFill<ComputedDatum<RawDatum>> &
     PieHandlers<RawDatum, SVGPathElement> & {
         layers: PieLayer<RawDatum>[]
-    }
+        animate: boolean
+        motionConfig: ModernMotionProps['motionConfig']
+        transitionMode: ArcTransitionMode
+    } & PieSvgCustomComponents<RawDatum>
 
 export type PieCanvasProps<RawDatum> = DataProps<RawDatum> &
     Dimensions &
@@ -159,26 +161,3 @@ export type CompletePieCanvasProps<RawDatum> = DataProps<RawDatum> &
     Pick<PieHandlers<RawDatum, HTMLCanvasElement>, 'onClick' | 'onMouseMove'> & {
         pixelRatio: number
     }
-
-export type Point = {
-    x: number
-    y: number
-}
-
-export type RadialLabelData<RawDatum> = {
-    text: string | number
-    textColor: string
-    position: Point
-    align: string
-    line: [Point, Point, Point]
-    linkColor: string
-    datum: ComputedDatum<RawDatum>
-}
-
-export type SliceLabelData<RawDatum> = {
-    x: number
-    y: number
-    label: string | number
-    textColor: string
-    datum: ComputedDatum<RawDatum>
-}

@@ -1,11 +1,3 @@
-/*
- * This file is part of the nivo project.
- *
- * Copyright 2016-present, Raphaël Benitte.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
 import React from 'react'
 import { ResponsivePie, defaultProps } from '@nivo/pie'
 import { generateProgrammingLanguageStats } from '@nivo/generators'
@@ -31,15 +23,17 @@ const initialProperties = {
 
     valueFormat: { format: '', enabled: false },
 
-    startAngle: 0,
-    endAngle: 360,
-    sortByValue: false,
+    startAngle: defaultProps.startAngle,
+    endAngle: defaultProps.endAngle,
+    sortByValue: defaultProps.sortByValue,
     innerRadius: 0.5,
     padAngle: 0.7,
     cornerRadius: 3,
-    fit: true,
+    fit: defaultProps.fit,
+    activeInnerRadiusOffset: defaultProps.activeInnerRadiusOffset,
+    activeOuterRadiusOffset: 8,
 
-    colors: { scheme: 'nivo' },
+    colors: defaultProps.colors,
 
     borderWidth: 1,
     borderColor: {
@@ -47,22 +41,25 @@ const initialProperties = {
         modifiers: [['darker', 0.2]],
     },
 
-    enableRadialLabels: true,
-    radialLabel: 'id',
-    radialLabelsSkipAngle: 10,
-    radialLabelsTextXOffset: 6,
-    radialLabelsTextColor: '#333333',
-    radialLabelsLinkOffset: 0,
-    radialLabelsLinkDiagonalLength: 16,
-    radialLabelsLinkHorizontalLength: 24,
-    radialLabelsLinkStrokeWidth: 1,
-    radialLabelsLinkColor: { from: 'color' },
+    enableArcLinkLabels: defaultProps.enableArcLinkLabels,
+    arcLinkLabel: defaultProps.arcLinkLabel,
+    arcLinkLabelsSkipAngle: 10,
+    arcLinkLabelsTextOffset: 6,
+    arcLinkLabelsTextColor: '#333333',
+    arcLinkLabelsOffset: 0,
+    arcLinkLabelsDiagonalLength: 16,
+    arcLinkLabelsStraightLength: 24,
+    arcLinkLabelsThickness: 2,
+    arcLinkLabelsColor: { from: 'color' },
 
-    enableSliceLabels: true,
-    sliceLabel: 'formattedValue',
-    sliceLabelsRadiusOffset: 0.5,
-    sliceLabelsSkipAngle: 10,
-    sliceLabelsTextColor: '#333333',
+    enableArcLabels: true,
+    arcLabel: 'formattedValue',
+    arcLabelsRadiusOffset: 0.5,
+    arcLabelsSkipAngle: 10,
+    arcLabelsTextColor: {
+        from: 'color',
+        modifiers: [['darker', 2]],
+    },
 
     isInteractive: true,
     'custom tooltip example': false,
@@ -71,6 +68,10 @@ const initialProperties = {
 
     defs: [],
     fill: [],
+
+    animate: defaultProps.animate,
+    motionConfig: defaultProps.motionConfig,
+    transitionMode: defaultProps.transitionMode,
 
     legends: [
         {

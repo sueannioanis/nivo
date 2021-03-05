@@ -205,10 +205,7 @@ declare module '@nivo/core' {
         | 'stepAfter'
         | 'stepBefore'
 
-    export type DataFormatter = (value: DatumValue) => string | number
-
     export function useAnimatedPath(path: string): OpaqueInterpolation<string>
-    export function useValueFormatter(formatter?: DataFormatter | string): DataFormatter
 
     export type LinearGradientDef = {
         id: string
@@ -231,7 +228,7 @@ declare module '@nivo/core' {
     }
 
     export type PatternSquaresDef = Omit<PatternDotsDef, 'type'> & {
-        type: 'patternDots'
+        type: 'patternSquares'
     }
 
     export type PatternLinesDef = {
@@ -281,10 +278,6 @@ declare module '@nivo/core' {
 
     export type DatumPropertyAccessor<RawDatum, T> = (datum: RawDatum) => T
 
-    export function getAccessorFor<RawDatum, T>(
-        directive: string | number | DatumPropertyAccessor<RawDatum, T>
-    ): DatumPropertyAccessor<RawDatum, T>
-
     export function useDimensions(
         width: number,
         height: number,
@@ -322,4 +315,38 @@ declare module '@nivo/core' {
     export const ResponsiveWrapper = (props: {
         children: (dimensions: { width: number; height: number }) => JSX.Element
     }) => JSX.Element
+
+    export function getDistance(x1: number, y1: number, x2: number, y2: number): number
+    export function getAngle(x1: number, y1: number, x2: number, y2: number): number
+
+    export function radiansToDegrees(radians: number): number
+    export function degreesToRadians(degrees: number): number
+
+    export function positionFromAngle(
+        angle: number,
+        distance: number
+    ): {
+        x: number
+        y: number
+    }
+
+    export type ValueFormat<Value> =
+        // d3 formatter
+        | string
+        // explicit formatting function
+        | ((value: Value) => string)
+    export function getValueFormatter<Value>(format?: ValueFormat<Value>): (value: Value) => string
+    export function useValueFormatter<Value>(format?: ValueFormat<Value>): (value: Value) => string
+
+    export type PropertyAccessor<Datum, Value> =
+        // path to use with `lodash.get()`
+        | string
+        // explicit accessor function
+        | ((datum: Datum) => Value)
+    export function getPropertyAccessor<Datum, Value>(
+        accessor: PropertyAccessor<Datum, Value>
+    ): (datum: Datum) => Value
+    export function usePropertyAccessor<Datum, Value>(
+        accessor: PropertyAccessor<Datum, Value>
+    ): (datum: Datum) => Value
 }

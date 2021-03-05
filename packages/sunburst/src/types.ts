@@ -5,15 +5,15 @@ import {
     Theme,
     Dimensions,
     Box,
-    DataFormatter,
+    ValueFormat,
     SvgDefsAndFill,
     ModernMotionProps,
+    PropertyAccessor,
 } from '@nivo/core'
 
 export type DatumId = string | number
 export type DatumValue = number
 
-export type DatumPropertyAccessor<RawDatum, T> = (datum: RawDatum) => T
 export type LabelAccessorFunction<RawDatum> = (datum: RawDatum) => string | number
 
 export type SunburstLayerId = 'slices' | 'sliceLabels'
@@ -32,9 +32,9 @@ export type SunburstLayer<RawDatum> = SunburstLayerId | SunburstCustomLayer<RawD
 
 export interface DataProps<RawDatum> {
     data: RawDatum
-    id?: string | number | DatumPropertyAccessor<RawDatum, DatumId>
-    value?: string | number | DatumPropertyAccessor<RawDatum, DatumValue>
-    valueFormat?: string | DataFormatter
+    id?: PropertyAccessor<RawDatum, DatumId>
+    value?: PropertyAccessor<RawDatum, DatumValue>
+    valueFormat?: ValueFormat<number>
 }
 
 export interface ChildrenDatum<RawDatum> {

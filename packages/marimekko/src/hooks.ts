@@ -2,11 +2,7 @@ import { useMemo } from 'react'
 import { get } from 'lodash'
 import { stack as d3Stack, Stack, Series } from 'd3-shape'
 import { ScaleLinear, scaleLinear } from 'd3-scale'
-import {
-    // @ts-ignore
-    useValueFormatter,
-    useTheme,
-} from '@nivo/core'
+import { useValueFormatter, useTheme } from '@nivo/core'
 import { InheritedColorConfig, useInheritedColor, useOrdinalColorScale } from '@nivo/colors'
 import {
     NormalizedDatum,
@@ -179,7 +175,7 @@ export const useComputedData = <RawDatum>({
 }) => {
     const getColor = useOrdinalColorScale<Omit<DimensionDatum<RawDatum>, 'color'>>(colors, 'id')
 
-    const formatValue = useValueFormatter(valueFormat)
+    const formatValue = useValueFormatter<number>(valueFormat)
 
     return useMemo(() => {
         const computedData: ComputedDatum<RawDatum>[] = []

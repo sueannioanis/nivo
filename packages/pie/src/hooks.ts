@@ -1,44 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { get } from 'lodash'
-import { arc as d3Arc, pie as d3Pie } from 'd3-shape'
-import {
-    // @ts-ignore
-    degreesToRadians,
-    // @ts-ignore
-    radiansToDegrees,
-    // @ts-ignore
-    useValueFormatter,
-    // @ts-ignore
-    computeArcBoundingBox,
-    useTheme,
-    // @ts-ignore
-    positionFromAngle,
-    // @ts-ignore
-    midAngle,
-    // @ts-ignore
-    getLabelGenerator,
-    // @ts-ignore
-    absoluteAngleRadians,
-    // @ts-ignore
-    absoluteAngleDegrees,
-} from '@nivo/core'
-import {
-    OrdinalColorScaleConfig,
-    useOrdinalColorScale,
-    InheritedColorConfig,
-    useInheritedColor,
-} from '@nivo/colors'
+import { pie as d3Pie } from 'd3-shape'
+import { ArcGenerator, useArcGenerator, computeArcBoundingBox } from '@nivo/arcs'
+import { degreesToRadians, radiansToDegrees, useValueFormatter } from '@nivo/core'
+import { OrdinalColorScaleConfig, useOrdinalColorScale } from '@nivo/colors'
 import { defaultProps } from './props'
-import {
-    CompletePieSvgProps,
-    ComputedDatum,
-    PieArc,
-    PieArcGenerator,
-    LabelAccessorFunction,
-    PieCustomLayerProps,
-    RadialLabelData,
-    SliceLabelData,
-} from './types'
+import { CompletePieSvgProps, ComputedDatum, PieArc, PieCustomLayerProps } from './types'
 
 interface MayHaveLabel {
     label?: string | number
@@ -64,7 +31,7 @@ export const useNormalizedData = <RawDatum extends MayHaveLabel>({
         () => (typeof value === 'function' ? value : (d: RawDatum) => get(d, value)),
         [value]
     )
-    const formatValue = useValueFormatter(valueFormat as any)
+    const formatValue = useValueFormatter<number>(valueFormat)
 
     const getColor = useOrdinalColorScale<Omit<ComputedDatum<RawDatum>, 'arc' | 'color' | 'fill'>>(
         colors,
@@ -99,25 +66,41 @@ export const useNormalizedData = <RawDatum extends MayHaveLabel>({
  */
 export const usePieArcs = <RawDatum>({
     data,
-    startAngle = defaultProps.startAngle,
-    endAngle = defaultProps.endAngle,
-    padAngle = defaultProps.padAngle,
-    sortByValue = defaultProps.sortByValue,
+    startAngle,
+    endAngle,
+    innerRadius,
+    outerRadius,
+    padAngle,
+    sortByValue,
+    activeId,
+    activeInnerRadiusOffset,
+    activeOuterRadiusOffset,
 }: {
     data: Omit<ComputedDatum<RawDatum>, 'arc' | 'fill'>[]
+    // in degrees
     startAngle: number
+    // in degrees
     endAngle: number
+    // in pixels
+    innerRadius: number
+    // in pixels
+    outerRadius: number
     padAngle: number
     sortByValue: boolean
+    activeId: null | string | number
+    activeInnerRadiusOffset: number
+    activeOuterRadiusOffset: number
 }): Omit<ComputedDatum<RawDatum>, 'fill'>[] => {
     const pie = useMemo(() => {
         const innerPie = d3Pie<Omit<ComputedDatum<RawDatum>, 'arc' | 'fill'>>()
             .value(d => d.value)
-            .padAngle(degreesToRadians(padAngle))
             .startAngle(degreesToRadians(startAngle))
             .endAngle(degreesToRadians(endAngle))
+            .padAngle(degreesToRadians(padAngle))
 
-        if (sortByValue !== true) innerPie.sortValues(null)
+        if (!sortByValue) {
+            innerPie.sortValues(null)
+        }
 
         return innerPie
     }, [startAngle, endAngle, padAngle, sortByValue])
@@ -126,7 +109,10 @@ export const usePieArcs = <RawDatum>({
         () =>
             pie(data).map(
                 (
-                    arc: Omit<PieArc, 'angle' | 'angleDeg'> & {
+                    arc: Omit<
+                        PieArc,
+                        'angle' | 'angleDeg' | 'innerRadius' | 'outerRadius' | 'thickness'
+                    > & {
                         data: Omit<ComputedDatum<RawDatum>, 'arc' | 'fill'>
                     }
                 ) => {
@@ -138,6 +124,15 @@ export const usePieArcs = <RawDatum>({
                             index: arc.index,
                             startAngle: arc.startAngle,
                             endAngle: arc.endAngle,
+                            innerRadius:
+                                activeId === arc.data.id
+                                    ? innerRadius - activeInnerRadiusOffset
+                                    : innerRadius,
+                            outerRadius:
+                                activeId === arc.data.id
+                                    ? outerRadius + activeOuterRadiusOffset
+                                    : outerRadius,
+                            thickness: outerRadius - innerRadius,
                             padAngle: arc.padAngle,
                             angle,
                             angleDeg: radiansToDegrees(angle),
@@ -146,24 +141,17 @@ export const usePieArcs = <RawDatum>({
                 }
             ),
 
-        [pie, data]
+        [
+            pie,
+            data,
+            innerRadius,
+            outerRadius,
+            activeId,
+            activeInnerRadiusOffset,
+            activeInnerRadiusOffset,
+        ]
     )
 }
-
-export const usePieArcGenerator = ({
-    radius,
-    innerRadius,
-    cornerRadius = defaultProps.cornerRadius,
-}: {
-    radius: number
-    innerRadius: number
-    cornerRadius: number
-}): PieArcGenerator =>
-    useMemo(
-        () =>
-            d3Arc<PieArc>().outerRadius(radius).innerRadius(innerRadius).cornerRadius(cornerRadius),
-        [radius, innerRadius, cornerRadius]
-    )
 
 /**
  * Compute pie layout using explicit radius/innerRadius,
@@ -178,29 +166,39 @@ export const usePie = <RawDatum>({
     padAngle = defaultProps.padAngle,
     sortByValue = defaultProps.sortByValue,
     cornerRadius = defaultProps.cornerRadius,
+    activeInnerRadiusOffset = defaultProps.activeInnerRadiusOffset,
+    activeOuterRadiusOffset = defaultProps.activeOuterRadiusOffset,
 }: Pick<
     CompletePieSvgProps<RawDatum>,
-    'startAngle' | 'endAngle' | 'padAngle' | 'sortByValue' | 'cornerRadius'
+    | 'startAngle'
+    | 'endAngle'
+    | 'padAngle'
+    | 'sortByValue'
+    | 'cornerRadius'
+    | 'activeInnerRadiusOffset'
+    | 'activeOuterRadiusOffset'
 > & {
     data: Omit<ComputedDatum<RawDatum>, 'arc'>[]
     radius: number
     innerRadius: number
 }) => {
+    const [activeId, setActiveId] = useState<string | number | null>(null)
     const dataWithArc = usePieArcs({
         data,
         startAngle,
         endAngle,
+        innerRadius,
+        outerRadius: radius,
         padAngle,
         sortByValue,
+        activeId,
+        activeInnerRadiusOffset,
+        activeOuterRadiusOffset,
     })
 
-    const arcGenerator = usePieArcGenerator({
-        radius,
-        innerRadius,
-        cornerRadius,
-    })
+    const arcGenerator = useArcGenerator({ cornerRadius, padAngle: degreesToRadians(padAngle) })
 
-    return { dataWithArc, arcGenerator }
+    return { dataWithArc, arcGenerator, setActiveId }
 }
 
 /**
@@ -222,6 +220,8 @@ export const usePieFromBox = <RawDatum>({
     sortByValue = defaultProps.sortByValue,
     cornerRadius = defaultProps.cornerRadius,
     fit = defaultProps.fit,
+    activeInnerRadiusOffset = defaultProps.activeInnerRadiusOffset,
+    activeOuterRadiusOffset = defaultProps.activeOuterRadiusOffset,
 }: Pick<
     CompletePieSvgProps<RawDatum>,
     | 'width'
@@ -233,17 +233,12 @@ export const usePieFromBox = <RawDatum>({
     | 'sortByValue'
     | 'cornerRadius'
     | 'fit'
+    | 'activeInnerRadiusOffset'
+    | 'activeOuterRadiusOffset'
 > & {
     data: Omit<ComputedDatum<RawDatum>, 'arc'>[]
 }) => {
-    const dataWithArc = usePieArcs({
-        data,
-        startAngle,
-        endAngle,
-        padAngle,
-        sortByValue,
-    })
-
+    const [activeId, setActiveId] = useState<string | number | null>(null)
     const computedProps = useMemo(() => {
         let radius = Math.min(width, height) / 2
         let innerRadius = radius * Math.min(innerRadiusRatio, 1)
@@ -292,149 +287,30 @@ export const usePieFromBox = <RawDatum>({
         }
     }, [width, height, innerRadiusRatio, startAngle, endAngle, fit, cornerRadius])
 
-    const arcGenerator = usePieArcGenerator({
-        radius: computedProps.radius,
+    const dataWithArc = usePieArcs({
+        data,
+        startAngle,
+        endAngle,
         innerRadius: computedProps.innerRadius,
+        outerRadius: computedProps.radius,
+        padAngle,
+        sortByValue,
+        activeId,
+        activeInnerRadiusOffset,
+        activeOuterRadiusOffset,
+    })
+
+    const arcGenerator = useArcGenerator({
         cornerRadius,
+        padAngle: degreesToRadians(padAngle),
     })
 
     return {
         dataWithArc,
         arcGenerator,
+        setActiveId,
         ...computedProps,
     }
-}
-
-export const usePieSliceLabels = <RawDatum>({
-    enable,
-    dataWithArc,
-    skipAngle,
-    radius,
-    innerRadius,
-    radiusOffset,
-    label,
-    textColor,
-}: {
-    enable: boolean
-    dataWithArc: ComputedDatum<RawDatum>[]
-    skipAngle: number
-    radius: number
-    innerRadius: number
-    radiusOffset: number
-    label: string | LabelAccessorFunction<RawDatum>
-    textColor: InheritedColorConfig<ComputedDatum<RawDatum>>
-}): SliceLabelData<RawDatum>[] => {
-    const theme = useTheme()
-    const getTextColor = useInheritedColor<ComputedDatum<RawDatum>>(textColor, theme)
-    const getLabel = useMemo(() => getLabelGenerator(label), [label])
-
-    return useMemo(() => {
-        if (!enable) return []
-
-        return dataWithArc
-            .filter(datumWithArc => skipAngle === 0 || datumWithArc.arc.angleDeg > skipAngle)
-            .map(datumWithArc => {
-                const angle = midAngle(datumWithArc.arc) - Math.PI / 2
-                const labelRadius = innerRadius + (radius - innerRadius) * radiusOffset
-                const position = positionFromAngle(angle, labelRadius)
-                const datumTextColor = getTextColor(datumWithArc)
-
-                return {
-                    ...position,
-                    label: getLabel(datumWithArc),
-                    textColor: datumTextColor,
-                    datum: datumWithArc,
-                }
-            })
-    }, [enable, dataWithArc, skipAngle, radius, innerRadius, radiusOffset, getLabel, getTextColor])
-}
-
-export const usePieRadialLabels = <RawDatum>({
-    enable,
-    dataWithArc,
-    label,
-    textXOffset,
-    textColor,
-    radius,
-    skipAngle,
-    linkOffset,
-    linkDiagonalLength,
-    linkHorizontalLength,
-    linkColor,
-}: {
-    enable: boolean
-    dataWithArc: ComputedDatum<RawDatum>[]
-    label: string | LabelAccessorFunction<RawDatum>
-    textXOffset: number
-    textColor: InheritedColorConfig<ComputedDatum<RawDatum>>
-    radius: number
-    skipAngle: number
-    linkOffset: number
-    linkDiagonalLength: number
-    linkHorizontalLength: number
-    linkColor: InheritedColorConfig<ComputedDatum<RawDatum>>
-}): RadialLabelData<RawDatum>[] => {
-    const getLabel = useMemo(() => getLabelGenerator(label), [label])
-
-    const theme = useTheme()
-    const getTextColor = useInheritedColor<ComputedDatum<RawDatum>>(textColor, theme)
-    const getLinkColor = useInheritedColor<ComputedDatum<RawDatum>>(linkColor, theme)
-
-    return useMemo(() => {
-        if (!enable) return []
-
-        return dataWithArc
-            .filter(datum => skipAngle === 0 || datum.arc.angleDeg > skipAngle)
-            .map(datum => {
-                const angle = absoluteAngleRadians(midAngle(datum.arc) - Math.PI / 2)
-                const positionA = positionFromAngle(angle, radius + linkOffset)
-                const positionB = positionFromAngle(angle, radius + linkOffset + linkDiagonalLength)
-
-                let positionC
-                let labelPosition
-                let textAlign
-
-                if (
-                    absoluteAngleDegrees(radiansToDegrees(angle)) < 90 ||
-                    absoluteAngleDegrees(radiansToDegrees(angle)) >= 270
-                ) {
-                    positionC = { x: positionB.x + linkHorizontalLength, y: positionB.y }
-                    labelPosition = {
-                        x: positionB.x + linkHorizontalLength + textXOffset,
-                        y: positionB.y,
-                    }
-                    textAlign = 'left'
-                } else {
-                    positionC = { x: positionB.x - linkHorizontalLength, y: positionB.y }
-                    labelPosition = {
-                        x: positionB.x - linkHorizontalLength - textXOffset,
-                        y: positionB.y,
-                    }
-                    textAlign = 'right'
-                }
-
-                return {
-                    text: getLabel(datum),
-                    textColor: getTextColor(datum),
-                    position: labelPosition,
-                    align: textAlign,
-                    line: [positionA, positionB, positionC],
-                    linkColor: getLinkColor(datum),
-                    datum,
-                }
-            })
-    }, [
-        dataWithArc,
-        skipAngle,
-        radius,
-        linkOffset,
-        linkDiagonalLength,
-        linkHorizontalLength,
-        textXOffset,
-        getLabel,
-        getTextColor,
-        getLinkColor,
-    ])
 }
 
 /**
@@ -449,7 +325,7 @@ export const usePieLayerContext = <RawDatum>({
     innerRadius,
 }: {
     dataWithArc: ComputedDatum<RawDatum>[]
-    arcGenerator: PieArcGenerator
+    arcGenerator: ArcGenerator
     centerX: number
     centerY: number
     radius: number

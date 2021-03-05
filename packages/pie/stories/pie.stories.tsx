@@ -1,6 +1,7 @@
 import React from 'react'
 import { storiesOf } from '@storybook/react'
 import { withKnobs, boolean } from '@storybook/addon-knobs'
+import { animated } from 'react-spring'
 import { generateProgrammingLanguageStats } from '@nivo/generators'
 import { Pie } from '../src'
 
@@ -13,6 +14,7 @@ const commonProperties = {
         ...d,
     })),
     animate: true,
+    activeOuterRadiusOffset: 8,
 }
 
 const legends = [
@@ -52,25 +54,25 @@ stories.add('fancy slices', () => (
         innerRadius={0.6}
         padAngle={0.5}
         cornerRadius={5}
-        radialLabelsLinkColor={{
+        arcLinkLabelsColor={{
             from: 'color',
         }}
-        radialLabelsLinkStrokeWidth={3}
-        radialLabelsTextColor={{
+        arcLinkLabelsThickness={3}
+        arcLinkLabelsTextColor={{
             from: 'color',
             modifiers: [['darker', 1.2]],
         }}
     />
 ))
 
-stories.add('custom radial label', () => (
+stories.add('custom arc link label', () => (
     <Pie
         {...commonProperties}
         innerRadius={0.6}
         padAngle={0.5}
         cornerRadius={5}
-        radialLabel={d => `${d.id}: ${d.value}`}
-        radialLabelsLinkColor={{
+        arcLinkLabel={d => `${d.id}: ${d.value}`}
+        arcLinkLabelsColor={{
             from: 'color',
         }}
         radialLabelsLinkStrokeWidth={3}
@@ -78,7 +80,7 @@ stories.add('custom radial label', () => (
             from: 'color',
             modifiers: [['darker', 1.2]],
         }}
-        enableSliceLabels={false}
+        enableArcLabels={false}
     />
 ))
 
@@ -135,14 +137,16 @@ stories.add('adding a metric in the center using a custom layer', () => (
         innerRadius={0.8}
         enableSliceLabels={false}
         radialLabel={d => `${d.id} (${d.formattedValue})`}
-        layers={['slices', 'sliceLabels', 'radialLabels', 'legends', CenteredMetric]}
+        activeInnerRadiusOffset={commonProperties.activeOuterRadiusOffset}
+        layers={['arcs', 'arcLabels', 'arcLinkLabels', 'legends', CenteredMetric]}
     />
 ))
 
-stories.add('formatted tooltip values', () => (
+stories.add('formatted values', () => (
     <Pie
         {...commonProperties}
-        tooltipFormat={value =>
+        sliceLabelsRadiusOffset={0.7}
+        valueFormat={value =>
             `${Number(value).toLocaleString('ru-RU', {
                 minimumFractionDigits: 2,
             })} ₽`
@@ -153,10 +157,20 @@ stories.add('formatted tooltip values', () => (
 stories.add('custom tooltip', () => (
     <Pie
         {...commonProperties}
-        tooltip={({ id, value, color }) => (
-            <strong style={{ color }}>
-                {id}: {value}
-            </strong>
+        tooltip={({ datum: { id, value, color } }) => (
+            <div
+                style={{
+                    padding: 12,
+                    color,
+                    background: '#222222',
+                }}
+            >
+                <span>Look, I'm custom :)</span>
+                <br />
+                <strong>
+                    {id}: {value}
+                </strong>
+            </div>
         )}
         theme={{
             tooltip: {
@@ -177,5 +191,39 @@ stories.add('enter/leave (check console)', () => (
         onMouseLeave={(data, e) => {
             console.log({ is: 'mouseleave', data, event: e }) // eslint-disable-line
         }}
+    />
+))
+
+stories.add('custom arc label component', () => (
+    <Pie
+        {...commonProperties}
+        innerRadius={0.2}
+        cornerRadius={3}
+        arcLabelsSkipAngle={20}
+        arcLabelsRadiusOffset={0.55}
+        arcLabelsTextColor={{
+            from: 'color',
+            modifiers: [['darker', 0.6]],
+        }}
+        arcLinkLabelsOffset={2}
+        arcLinkLabelsColor={{ from: 'color' }}
+        arcLinkLabelsThickness={3}
+        arcLabelComponent={({ datum, label, style }) => (
+            <animated.g transform={style.transform} style={{ pointerEvents: 'none' }}>
+                <circle fill={style.textColor} cy={6} r={15} />
+                <circle fill="#ffffff" stroke={datum.color} strokeWidth={2} r={16} />
+                <text
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill={style.textColor}
+                    style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                    }}
+                >
+                    {label}
+                </text>
+            </animated.g>
+        )}
     />
 ))

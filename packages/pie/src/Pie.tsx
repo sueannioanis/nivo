@@ -1,23 +1,20 @@
 import React, { ReactNode, Fragment, createElement } from 'react'
 import {
     // @ts-ignore
-    withContainer,
-    SvgWrapper,
-    // @ts-ignore
     bindDefs,
-    useTheme,
     useDimensions,
+    Container,
+    SvgWrapper,
 } from '@nivo/core'
-import { useInheritedColor, InheritedColorConfig } from '@nivo/colors'
-import { PieSlice } from './PieSlice'
-import { RadialLabels } from './RadialLabels'
-import { SliceLabels } from './SliceLabels'
+import { ArcLabelsLayer, ArcLinkLabelsLayer } from '@nivo/arcs'
+import { InheritedColorConfig } from '@nivo/colors'
 import PieLegends from './PieLegends'
 import { useNormalizedData, usePieFromBox, usePieLayerContext } from './hooks'
 import { ComputedDatum, PieLayer, PieSvgProps, PieLayerId } from './types'
 import { defaultProps } from './props'
+import { Arcs } from './Arcs'
 
-const Pie = <RawDatum,>({
+const InnerPie = <RawDatum,>({
     data,
     id = defaultProps.id,
     value = defaultProps.value,
@@ -32,6 +29,8 @@ const Pie = <RawDatum,>({
     fit = defaultProps.fit,
     innerRadius: innerRadiusRatio = defaultProps.innerRadius,
     cornerRadius = defaultProps.cornerRadius,
+    activeInnerRadiusOffset = defaultProps.activeInnerRadiusOffset,
+    activeOuterRadiusOffset = defaultProps.activeOuterRadiusOffset,
 
     width,
     height,
@@ -41,28 +40,28 @@ const Pie = <RawDatum,>({
 
     // border
     borderWidth = defaultProps.borderWidth,
-    borderColor: _borderColor = defaultProps.borderColor as InheritedColorConfig<
-        ComputedDatum<RawDatum>
-    >,
+    borderColor = defaultProps.borderColor as InheritedColorConfig<ComputedDatum<RawDatum>>,
 
-    // radial labels
-    radialLabel = defaultProps.radialLabel,
-    enableRadialLabels = defaultProps.enableRadialLabels,
-    radialLabelsSkipAngle = defaultProps.radialLabelsSkipAngle,
-    radialLabelsLinkOffset = defaultProps.radialLabelsLinkOffset,
-    radialLabelsLinkDiagonalLength = defaultProps.radialLabelsLinkDiagonalLength,
-    radialLabelsLinkHorizontalLength = defaultProps.radialLabelsLinkHorizontalLength,
-    radialLabelsLinkStrokeWidth = defaultProps.radialLabelsLinkStrokeWidth,
-    radialLabelsTextXOffset = defaultProps.radialLabelsTextXOffset,
-    radialLabelsTextColor = defaultProps.radialLabelsTextColor,
-    radialLabelsLinkColor = defaultProps.radialLabelsLinkColor,
+    // arc labels
+    enableArcLabels = defaultProps.enableArcLabels,
+    arcLabel = defaultProps.arcLabel,
+    arcLabelsSkipAngle = defaultProps.arcLabelsSkipAngle,
+    arcLabelsTextColor = defaultProps.arcLabelsTextColor,
+    arcLabelsRadiusOffset = defaultProps.arcLabelsRadiusOffset,
+    arcLabelComponent,
 
-    // slices labels
-    sliceLabel = defaultProps.sliceLabel,
-    enableSliceLabels = defaultProps.enableSliceLabels,
-    sliceLabelsSkipAngle = defaultProps.sliceLabelsSkipAngle,
-    sliceLabelsTextColor = defaultProps.sliceLabelsTextColor,
-    sliceLabelsRadiusOffset = defaultProps.sliceLabelsRadiusOffset,
+    // arc link labels
+    enableArcLinkLabels = defaultProps.enableArcLinkLabels,
+    arcLinkLabel = defaultProps.arcLinkLabel,
+    arcLinkLabelsSkipAngle = defaultProps.arcLinkLabelsSkipAngle,
+    arcLinkLabelsOffset = defaultProps.arcLinkLabelsOffset,
+    arcLinkLabelsDiagonalLength = defaultProps.arcLinkLabelsDiagonalLength,
+    arcLinkLabelsStraightLength = defaultProps.arcLinkLabelsStraightLength,
+    arcLinkLabelsThickness = defaultProps.arcLinkLabelsThickness,
+    arcLinkLabelsTextOffset = defaultProps.arcLinkLabelsTextOffset,
+    arcLinkLabelsTextColor = defaultProps.arcLinkLabelsTextColor,
+    arcLinkLabelsColor = defaultProps.arcLinkLabelsColor,
+    arcLinkLabelComponent,
 
     // styling
     defs = defaultProps.defs,
@@ -76,11 +75,11 @@ const Pie = <RawDatum,>({
     onMouseLeave,
     tooltip = defaultProps.tooltip,
 
+    transitionMode = defaultProps.transitionMode,
+
     legends = defaultProps.legends,
     role = defaultProps.role,
 }: PieSvgProps<RawDatum>) => {
-    const theme = useTheme()
-
     const { outerWidth, outerHeight, margin, innerWidth, innerHeight } = useDimensions(
         width,
         height,
@@ -95,9 +94,15 @@ const Pie = <RawDatum,>({
         colors,
     })
 
-    const { dataWithArc, arcGenerator, centerX, centerY, radius, innerRadius } = usePieFromBox<
-        RawDatum
-    >({
+    const {
+        dataWithArc,
+        arcGenerator,
+        centerX,
+        centerY,
+        radius,
+        innerRadius,
+        setActiveId,
+    } = usePieFromBox<RawDatum>({
         data: normalizedData,
         width: innerWidth,
         height: innerHeight,
@@ -108,74 +113,73 @@ const Pie = <RawDatum,>({
         padAngle,
         sortByValue,
         cornerRadius,
+        activeInnerRadiusOffset,
+        activeOuterRadiusOffset,
     })
-
-    const borderColor = useInheritedColor<ComputedDatum<RawDatum>>(_borderColor, theme)
 
     const boundDefs = bindDefs(defs, dataWithArc, fill)
 
     const layerById: Record<PieLayerId, ReactNode> = {
-        slices: null,
-        radialLabels: null,
-        sliceLabels: null,
+        arcLinkLabels: null,
+        arcs: null,
+        arcLabels: null,
         legends: null,
     }
 
-    if (layers.includes('slices')) {
-        layerById.slices = (
-            <g key="slices" transform={`translate(${centerX},${centerY})`}>
-                {dataWithArc.map(datumWithArc => (
-                    <PieSlice<RawDatum>
-                        key={datumWithArc.id}
-                        datum={datumWithArc}
-                        path={arcGenerator(datumWithArc.arc) ?? undefined}
-                        borderWidth={borderWidth}
-                        borderColor={borderColor(datumWithArc)}
-                        tooltip={tooltip}
-                        isInteractive={isInteractive}
-                        onClick={onClick}
-                        onMouseEnter={onMouseEnter}
-                        onMouseMove={onMouseMove}
-                        onMouseLeave={onMouseLeave}
-                    />
-                ))}
-            </g>
+    if (enableArcLinkLabels && layers.includes('arcLinkLabels')) {
+        layerById.arcLinkLabels = (
+            <ArcLinkLabelsLayer<ComputedDatum<RawDatum>>
+                key="arcLinkLabels"
+                center={[centerX, centerY]}
+                data={dataWithArc}
+                label={arcLinkLabel}
+                skipAngle={arcLinkLabelsSkipAngle}
+                offset={arcLinkLabelsOffset}
+                diagonalLength={arcLinkLabelsDiagonalLength}
+                straightLength={arcLinkLabelsStraightLength}
+                strokeWidth={arcLinkLabelsThickness}
+                textOffset={arcLinkLabelsTextOffset}
+                textColor={arcLinkLabelsTextColor}
+                linkColor={arcLinkLabelsColor}
+                component={arcLinkLabelComponent}
+            />
         )
     }
 
-    if (enableRadialLabels && layers.includes('radialLabels')) {
-        layerById.radialLabels = (
-            <g key="radialLabels" transform={`translate(${centerX},${centerY})`}>
-                <RadialLabels<RawDatum>
-                    dataWithArc={dataWithArc}
-                    radius={radius}
-                    label={radialLabel}
-                    skipAngle={radialLabelsSkipAngle}
-                    linkOffset={radialLabelsLinkOffset}
-                    linkDiagonalLength={radialLabelsLinkDiagonalLength}
-                    linkHorizontalLength={radialLabelsLinkHorizontalLength}
-                    linkStrokeWidth={radialLabelsLinkStrokeWidth}
-                    textXOffset={radialLabelsTextXOffset}
-                    textColor={radialLabelsTextColor}
-                    linkColor={radialLabelsLinkColor}
-                />
-            </g>
+    if (layers.includes('arcs')) {
+        layerById.arcs = (
+            <Arcs<RawDatum>
+                key="arcs"
+                center={[centerX, centerY]}
+                data={dataWithArc}
+                arcGenerator={arcGenerator}
+                borderWidth={borderWidth}
+                borderColor={borderColor}
+                isInteractive={isInteractive}
+                onClick={onClick}
+                onMouseEnter={onMouseEnter}
+                onMouseMove={onMouseMove}
+                onMouseLeave={onMouseLeave}
+                setActiveId={setActiveId}
+                tooltip={tooltip}
+                transitionMode={transitionMode}
+            />
         )
     }
 
-    if (enableSliceLabels && layers.includes('sliceLabels')) {
-        layerById.sliceLabels = (
-            <g key="sliceLabels" transform={`translate(${centerX},${centerY})`}>
-                <SliceLabels<RawDatum>
-                    dataWithArc={dataWithArc}
-                    label={sliceLabel}
-                    radius={radius}
-                    innerRadius={innerRadius}
-                    radiusOffset={sliceLabelsRadiusOffset}
-                    skipAngle={sliceLabelsSkipAngle}
-                    textColor={sliceLabelsTextColor}
-                />
-            </g>
+    if (enableArcLabels && layers.includes('arcLabels')) {
+        layerById.arcLabels = (
+            <ArcLabelsLayer<ComputedDatum<RawDatum>>
+                key="arcLabels"
+                center={[centerX, centerY]}
+                data={dataWithArc}
+                label={arcLabel}
+                radiusOffset={arcLabelsRadiusOffset}
+                skipAngle={arcLabelsSkipAngle}
+                textColor={arcLabelsTextColor}
+                transitionMode={transitionMode}
+                component={arcLabelComponent}
+            />
         )
     }
 
@@ -223,4 +227,19 @@ const Pie = <RawDatum,>({
     )
 }
 
-export default withContainer(Pie) as <RawDatum>(props: PieSvgProps<RawDatum>) => JSX.Element
+export const Pie = <RawDatum,>({
+    isInteractive = defaultProps.isInteractive,
+    animate = defaultProps.animate,
+    motionConfig = defaultProps.motionConfig,
+    theme,
+    ...otherProps
+}: PieSvgProps<RawDatum>) => (
+    <Container
+        isInteractive={isInteractive}
+        animate={animate}
+        motionConfig={motionConfig}
+        theme={theme}
+    >
+        <InnerPie<RawDatum> isInteractive={isInteractive} {...otherProps} />
+    </Container>
+)

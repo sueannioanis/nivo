@@ -2,7 +2,7 @@ import pick from 'lodash/pick'
 import sortBy from 'lodash/sortBy'
 import cloneDeep from 'lodash/cloneDeep'
 import React, { createElement, useCallback, useMemo } from 'react'
-import { getAccessorFor, useTheme, useValueFormatter } from '@nivo/core'
+import { usePropertyAccessor, useTheme, useValueFormatter } from '@nivo/core'
 import { arc, Arc } from 'd3-shape'
 import { useOrdinalColorScale, useInheritedColor } from '@nivo/colors'
 import { useTooltip } from '@nivo/tooltip'
@@ -108,10 +108,10 @@ export const useSunburst = <RawDatum extends MaybeColor>({
         datum: NormalizedDatum<RawDatum>
     ) => string
 
-    const getId = useMemo(() => getAccessorFor(id), [id])
-    const getValue = useMemo(() => getAccessorFor(value), [value])
+    const getId = usePropertyAccessor(id)
+    const getValue = usePropertyAccessor(value)
 
-    const formatValue = useValueFormatter(valueFormat)
+    const formatValue = useValueFormatter<number>(valueFormat)
 
     const nodes = useMemo(() => {
         const partition = d3Partition<RawDatum>().size([2 * Math.PI, radius * radius])
